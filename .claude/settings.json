@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "day=$(date +%u); if [ \"$day\" -le 5 ]; then echo '{\"hookSpecificOutput\": {\"hookEventName\": \"SessionStart\", \"additionalContext\": \"Het is een doordeweekse ochtend. Voer direct een AI-nieuws briefing uit: zoek op het web naar de 3 belangrijkste AI-nieuwsberichten van de afgelopen 24 uur. Focus uitsluitend op modelreleases, grote productlanceringen en concrete benchmarkresultaten — geen financieringsnieuws of opiniestukken. Schrijf de briefing in het Nederlands als platte tekst. Voor elk bericht: (1) de kop, (2) één zin over wat er concreet is gelanceerd of veranderd, (3) één zin waarom dit belangrijk is voor een webdeveloper, social media manager en marketeer.\"}}'; fi",
+            "timeout": 5,
+            "statusMessage": "AI-nieuws briefing voorbereiden..."
+          }
+        ]
+      }
+    ]
+  }
+}
