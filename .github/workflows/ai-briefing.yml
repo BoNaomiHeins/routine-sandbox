@@ -1,0 +1,35 @@
+name: Dagelijkse AI-briefing
+
+on:
+  schedule:
+    # Elke werkdag om 07:00 Amsterdam-tijd (= 05:00 UTC, zomertijd)
+    - cron: "0 5 * * 1-5"
+  workflow_dispatch:
+
+jobs:
+  briefing:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Genereer AI-briefing via Claude Code
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          allowed_tools: "WebSearch,mcp__Gmail__create_draft,mcp__Gmail__list_labels"
+          prompt: |
+            Zoek op het web naar het belangrijkste AI-nieuws van de afgelopen vierentwintig uur.
+            Focus op modelreleases, grote productlanceringen en concrete benchmarkresultaten.
+            Sla financieringsnieuws en opiniestukken over.
+
+            Kies de drie meest relevante berichten. Schrijf voor elk bericht:
+            - De kop
+            - Één zin over wat er concreet is gelanceerd of veranderd
+            - Één zin over waarom dit belangrijk is voor een webdeveloper, social media- en marketingprofessional
+
+            Stel daarna een Gmail-concept op met:
+            - Aan: bonheins@gmail.com
+            - Onderwerp: AI-briefing [datum van vandaag]
+            - Inhoud: de drie berichten als platte tekst (geen markdown-headers, geen opsommingstekens)
+
+            Gebruik mcp__Gmail__create_draft om het concept aan te maken.
