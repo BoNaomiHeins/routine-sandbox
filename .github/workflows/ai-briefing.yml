@@ -1,0 +1,66 @@
+name: Dagelijkse AI-nieuwsbriefing
+
+on:
+  schedule:
+    # Elke doordeweekse dag om 06:00 Amsterdam-tijd (04:00 UTC zomer, 05:00 UTC winter)
+    # UTC 05:00 = 07:00 CEST (zomer), aanpassen naar 06:00 UTC voor wintertijd
+    - cron: '0 5 * * 1-5'
+  workflow_dispatch: {}
+
+jobs:
+  briefing:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Genereer AI-nieuwsbriefing via Claude
+        id: briefing
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          DATUM=$(date '+%d %B %Y')
+
+          RESPONSE=$(curl -s https://api.anthropic.com/v1/messages \
+            -H "x-api-key: $ANTHROPIC_API_KEY" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "content-type: application/json" \
+            -d "{
+              \"model\": \"claude-opus-4-8\",
+              \"max_tokens\": 1024,
+              \"tools\": [{
+                \"type\": \"web_search_20250305\",
+                \"name\": \"web_search\",
+                \"max_uses\": 5
+              }],
+              \"messages\": [{
+                \"role\": \"user\",
+                \"content\": \"Zoek het belangrijkste AI-nieuws van de afgelopen 24 uur. Focus uitsluitend op modelreleases, grote productlanceringen en concrete benchmarkresultaten. Sla financieringsnieuws en opiniestukken over. Kies de drie meest relevante berichten. Schrijf voor elk bericht: de kop, één zin over wat er concreet is gelanceerd of veranderd, en één zin over waarom dit belangrijk is voor een webdeveloper, social media-professional en marketeer. Geef de volledige briefing als platte tekst. Datum: $DATUM.\"
+              }]
+            }")
+
+          CONTENT=$(echo "$RESPONSE" | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          for block in data.get('content', []):
+              if block.get('type') == 'text':
+                  print(block['text'])
+          ")
+
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo "$CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Maak GitHub Issue aan met briefing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATUM=$(date '+%Y-%m-%d')
+          gh issue create \
+            --title "AI-briefing $DATUM" \
+            --body "${{ steps.briefing.outputs.content }}" \
+            --label "briefing"
